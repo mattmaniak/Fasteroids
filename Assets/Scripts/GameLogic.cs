@@ -74,6 +74,10 @@ public class GameLogic : MonoBehaviour
     Fasteroids.DataLayer.SpaceshipRepository _repository = new Fasteroids.DataLayer.SpaceshipRepository();
     #endregion
 
+    Vector3 _mouseTargetPosition;
+
+    bool _movingByMouse;
+
     void Start()
     {
         _restartButton.gameObject.SetActive(false);
@@ -97,6 +101,7 @@ public class GameLogic : MonoBehaviour
         _playerCachedPosition = _playerTransform.position;
 
         HandleInput();
+        HandleMouse();
 
         UpdateAsteroids();
         System.Array.Sort( _asteroids, new MyComparer() );
@@ -114,7 +119,7 @@ public class GameLogic : MonoBehaviour
 
     void HandleInput()
     {
-        if (!_playerDestroyed)
+        if (!_playerDestroyed && !_movingByMouse)
         {
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
                 _playerTransform.position += _playerTransform.up * Time.deltaTime * playerSpeed;
@@ -128,6 +133,74 @@ public class GameLogic : MonoBehaviour
 
         if (Input.GetKey(KeyCode.Escape))
             Application.Quit();
+    }
+
+    void HandleMouse()
+    {
+        float rotationAngleZ = 0.0f;
+        float deltaX;
+        float deltaY;
+
+        if (!_playerDestroyed)
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                _movingByMouse = true;
+
+                _mouseTargetPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                _mouseTargetPosition.z = _playerTransform.position.z;
+
+                deltaX = _mouseTargetPosition.x - _playerTransform.position.x;
+                deltaY = _mouseTargetPosition.y - _playerTransform.position.y;
+
+                // Found on the internet. Should work but doesn't.
+                //
+                // _playerTransform.rotation = Quaternion.LookRotation(Vector3.forward, _mouseTargetPosition);
+                //
+                // So... I've decided to remind some of the trigonometry from
+                // high school, including a famous poem:
+                //
+                // W pierwszej ćwiartce same plusy
+                // W drugiej tylko sinus
+                // W trzeciej tangens i cotangens
+                // A w czwartej cosinus
+                //
+                // ...and something what I did in the past:
+                //
+                // https://gitlab.com/mattmaniak/tpp3d/-/blob/master/src/player.py
+                // https://gitlab.com/mattmaniak/tpp3d/-/blob/master/src/tpp_camera.py
+                // https://gitlab.com/mattmaniak/tpp3d/-/blob/master/src/rotation.py
+                //
+                // To implement a rotation just manually.
+                if (_playerTransform.position.x >= _mouseTargetPosition.x)
+                {
+                    if (_playerTransform.position.y >= _mouseTargetPosition.y)
+                    {
+                        // 3-rd quarter
+                        rotationAngleZ = Mathf.Atan2(-deltaX, deltaY);
+                    }
+                    else
+                    {
+                        /// 2-nd quarter
+                        rotationAngleZ = -Mathf.Atan2(deltaX, deltaY);
+                    }                    
+                }
+                else
+                {
+                    // 1-st and 4-rd quarters.
+                    rotationAngleZ = Mathf.Atan2(-deltaX, deltaY);
+                }
+                _playerTransform.rotation = Quaternion.Euler(0.0f, 0.0f, rotationAngleZ * Mathf.Rad2Deg);
+            }
+            if (_movingByMouse)
+            {
+                _playerTransform.position = Vector3.MoveTowards(_playerTransform.position, _mouseTargetPosition, playerSpeed * Time.deltaTime);
+            }
+            if (_playerTransform.position == _mouseTargetPosition)
+            {
+                _movingByMouse = false;
+            }
+        }
     }
 
     /// <summary>
