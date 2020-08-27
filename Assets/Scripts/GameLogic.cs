@@ -75,8 +75,11 @@ public class GameLogic : MonoBehaviour
     #endregion
 
     Vector3 _mouseTargetPosition;
+    Quaternion _mouseTargetRotation;
 
-    bool _movingByMouse;
+    bool _playerMovingByMouse;
+
+    bool _playerRotatingByMouse;
 
     void Start()
     {
@@ -119,7 +122,7 @@ public class GameLogic : MonoBehaviour
 
     void HandleInput()
     {
-        if (!_playerDestroyed && !_movingByMouse)
+        if (!_playerDestroyed && !_playerMovingByMouse)
         {
             if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
                 _playerTransform.position += _playerTransform.up * Time.deltaTime * playerSpeed;
@@ -137,15 +140,17 @@ public class GameLogic : MonoBehaviour
 
     void HandleMouse()
     {
-        float rotationAngleZ = 0.0f;
+        const float comparisonMargin = 3.0f;
+        float rotationZ = 0.0f;
         float deltaX;
         float deltaY;
+
 
         if (!_playerDestroyed)
         {
             if (Input.GetMouseButtonDown(0))
             {
-                _movingByMouse = true;
+                _playerMovingByMouse = _playerRotatingByMouse = true;
 
                 _mouseTargetPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 _mouseTargetPosition.z = _playerTransform.position.z;
@@ -177,28 +182,42 @@ public class GameLogic : MonoBehaviour
                     if (_playerTransform.position.y >= _mouseTargetPosition.y)
                     {
                         // 3-rd quarter
-                        rotationAngleZ = Mathf.Atan2(-deltaX, deltaY);
+                        rotationZ = Mathf.Atan2(-deltaX, deltaY);
                     }
                     else
                     {
                         /// 2-nd quarter
-                        rotationAngleZ = -Mathf.Atan2(deltaX, deltaY);
+                        rotationZ = -Mathf.Atan2(deltaX, deltaY);
                     }                    
                 }
                 else
                 {
                     // 1-st and 4-rd quarters.
-                    rotationAngleZ = Mathf.Atan2(-deltaX, deltaY);
+                    rotationZ = Mathf.Atan2(-deltaX, deltaY);
                 }
-                _playerTransform.rotation = Quaternion.Euler(0.0f, 0.0f, rotationAngleZ * Mathf.Rad2Deg);
+                _mouseTargetRotation = Quaternion.Euler(0.0f, 0.0f, rotationZ * Mathf.Rad2Deg);
+
             }
-            if (_movingByMouse)
+            if (_playerMovingByMouse)
             {
                 _playerTransform.position = Vector3.MoveTowards(_playerTransform.position, _mouseTargetPosition, playerSpeed * Time.deltaTime);
+                if (_playerTransform.position == _mouseTargetPosition)
+                {
+                    _playerMovingByMouse = false;
+                }
             }
-            if (_playerTransform.position == _mouseTargetPosition)
+            if (_playerRotatingByMouse)
             {
-                _movingByMouse = false;
+                _playerTransform.rotation = Quaternion.Euler(0.0f, 0.0f, _playerTransform.rotation.eulerAngles.z + 90.0f * Time.deltaTime);
+
+                // Very ugly and risky comparison.
+                //
+                if ((_playerTransform.rotation.eulerAngles.z >= (_mouseTargetRotation.eulerAngles.z - comparisonMargin))
+                    && (_playerTransform.rotation.eulerAngles.z <= (_mouseTargetRotation.eulerAngles.z + comparisonMargin)))
+                {
+                    _playerRotatingByMouse = false;
+                    Debug.Log("Stop");
+                }
             }
         }
     }
