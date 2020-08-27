@@ -38,7 +38,7 @@ public class GameLogic : MonoBehaviour
     const float GridDimensionFloat = 160;
     const int TotalNumberOfAsteroids = GridDimensionInt * GridDimensionInt;
 
-    public string ShipName = "Avenger";
+    public string ShipName;
 
     // pool sizes
     const int AsteroidPoolSize = 40; // in tests this never went above 35 so for safety I gave 5 more
@@ -70,6 +70,8 @@ public class GameLogic : MonoBehaviour
 
     Transform _playerTransform;
     bool _playerDestroyed;
+
+    Fasteroids.DataLayer.SpaceshipRepository _repository = new Fasteroids.DataLayer.SpaceshipRepository();
     #endregion
 
     void Start()
@@ -86,6 +88,8 @@ public class GameLogic : MonoBehaviour
             GridDimensionFloat / 2f - 0.5f,
             GridDimensionFloat / 2f - 0.5f,
             0.3f);
+
+        AssignSpaceShipName();
     }
 
     void Update()
@@ -470,5 +474,19 @@ public class GameLogic : MonoBehaviour
         u.tmp >>= 1; /* Divide by 2. */
         u.tmp += 1 << 29; /* Add ((b + 1) / 2) * 2^m. */
         return u.f;
+    }
+
+    void AssignSpaceShipName()
+    {
+        var SpaceShipConfig = _repository.LoadData();
+
+        if (SpaceShipConfig == null)
+        {
+            ShipName = "Avenger";
+            Debug.Log("Unable to read ShipName from JSON. Set to default.");
+            return;
+        }
+        // Debug.Log("Name from file: " + SpaceShipConfig.Name); // Check if works.        
+        ShipName = SpaceShipConfig.Name;
     }
 }

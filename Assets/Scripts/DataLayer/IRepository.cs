@@ -4,5 +4,6 @@ using UnityEngine;
 
 public interface IRepository
 {
-    void LoadData();
+    // Not the most beautiful usage of the interface, with predefined return type.
+    SpaceShipConfig LoadData();
 }
