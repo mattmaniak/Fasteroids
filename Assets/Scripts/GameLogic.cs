@@ -43,6 +43,8 @@ public class GameLogic : MonoBehaviour
     // pool sizes
     const int AsteroidPoolSize = 40; // in tests this never went above 35 so for safety I gave 5 more
 
+    const int MaxLaserBeamPoolSize = 3;
+
     float FrustumSizeX = 3.8f;
     float FrustumSizeY = 2.3f;
     #endregion
@@ -586,7 +588,16 @@ public class GameLogic : MonoBehaviour
 
     void Shoot()
     {
-        _laserBeamPool.Add(new LaserBeam(Instantiate(_laserBeamPrefab.gameObject), _playerTransform));
+        _laserBeamPool.Add(
+            new LaserBeam(Instantiate(_laserBeamPrefab.gameObject),
+                          _playerTransform)
+            );
+        
+        if (_laserBeamPool.Count > MaxLaserBeamPoolSize)
+        {
+            _laserBeamPool[0].gameObject.transform.position = _objectGraveyardPosition;
+            _laserBeamPool.RemoveAt(0);
+        }
     }
 
     // TODO: FIX STACK OVERFLOW AND EDITOR CRASHING IN UPDATE FUNCTION.
@@ -597,12 +608,7 @@ public class GameLogic : MonoBehaviour
             foreach (LaserBeam l in _laserBeamPool)
             {
                 l.Update();
-                if (!l.Alive)
-                {
-                    _laserBeamPool.Remove(l);
-                }
             }
-            Debug.Log(_laserBeamPool.Count);
         }
     }
 }
@@ -611,14 +617,8 @@ internal class LaserBeam
 {
     public GameObject gameObject {get; set;} // GameObject class is sealed, unfortunately...
 
-    public bool Alive
-    {
-        get { return Alive; }
-    }
-
     private const float _timeToLiveSeconds = 1.0f; // After this, a laser ball will be destroyed.
     private const float _speedPerSecond = 10.0f;
-    private bool _alive;
     private float _currentLiveTimeSeconds = 0.0f;
     private Transform _launcherTransform;
 
@@ -626,22 +626,13 @@ internal class LaserBeam
     {
         this.gameObject = gameObject;
 
-        _alive = true;
         _launcherTransform = launcherTransform;
-        
         gameObject.transform.position = launcherTransform.position;
-
-        Debug.Log(_launcherTransform.position);
     }
 
     public void Update()
     {
-        _currentLiveTimeSeconds += Time.deltaTime;
 
-        if (_currentLiveTimeSeconds >= _timeToLiveSeconds)
-        {
-            _alive = false;
-        }
     }
 
     private void NormalizeMovementVector()
