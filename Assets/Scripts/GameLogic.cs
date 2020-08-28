@@ -57,6 +57,7 @@ public class GameLogic : MonoBehaviour
     // prefabs
     [SerializeField] GameObject _asteroidPrefab;
     [SerializeField] GameObject _spaceshipPrefab;
+    [SerializeField] GameObject _laserBeamPrefab;
 
     // other references
     [SerializeField] Camera _mainCamera;
@@ -66,7 +67,7 @@ public class GameLogic : MonoBehaviour
     // object pools
     GameObject[] _asteroidPool;
 
-    List<Laser> _laserPool;
+    List<LaserBeam> _laserBeamPool;
 
     Vector3 _playerCachedPosition;
 
@@ -99,7 +100,7 @@ public class GameLogic : MonoBehaviour
             0.3f);
 
         AssignSpaceShipName();
-        _laserPool = new List<Laser>() {};
+        _laserBeamPool = new List<LaserBeam>() {};
     }
 
     void Update()
@@ -585,28 +586,28 @@ public class GameLogic : MonoBehaviour
 
     void Shoot()
     {
-        _laserPool.Add(new Laser(_playerTransform));
+        _laserBeamPool.Add(new LaserBeam(Instantiate(_laserBeamPrefab.gameObject), _playerTransform));
     }
 
     // TODO: FIX STACK OVERFLOW AND EDITOR CRASHING IN UPDATE FUNCTION.
-    void CheckLaserPool()
+    void CheckLaserBeamPool()
     {
-        if (_laserPool.Count > 0)
+        if (_laserBeamPool.Count > 0)
         {
-            foreach (Laser l in _laserPool)
+            foreach (LaserBeam l in _laserBeamPool)
             {
                 l.Update();
                 if (!l.Alive)
                 {
-                    _laserPool.Remove(l);
+                    _laserBeamPool.Remove(l);
                 }
             }
-            Debug.Log(_laserPool.Count);
+            Debug.Log(_laserBeamPool.Count);
         }
     }
 }
 
-internal class Laser
+internal class LaserBeam
 {
     public GameObject gameObject {get; set;} // GameObject class is sealed, unfortunately...
 
@@ -621,8 +622,9 @@ internal class Laser
     private float _currentLiveTimeSeconds = 0.0f;
     private Transform _launcherTransform;
 
-    public Laser(Transform launcherTransform)
+    public LaserBeam(GameObject gameObject, Transform launcherTransform)
     {
+        this.gameObject = gameObject;
         _alive = true;
         _launcherTransform = launcherTransform;
         

@@ -238,6 +238,8 @@ MonoBehaviour:
     type: 3}
   _spaceshipPrefab: {fileID: 1481409102596041043, guid: 894b9d56874974444b44ce6b9ecdb3ae,
     type: 3}
+  _laserBeamPrefab: {fileID: 8092063352349449619, guid: cdc0632e3043ad4458a00107c9f25a90,
+    type: 3}
   _mainCamera: {fileID: 519420031}
   _restartButton: {fileID: 1388927302}
   _youLoseLabel: {fileID: 1499069365}
