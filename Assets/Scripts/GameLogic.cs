@@ -211,11 +211,14 @@ public class GameLogic : MonoBehaviour
                     // 1-st and 4-rd quarters.
                     rotationAngleZ = Mathf.Atan2(-delta.x, delta.y);
                 }
-                _playerTransform.rotation = Quaternion.Euler(0.0f, 0.0f, rotationAngleZ * Mathf.Rad2Deg);
+                _playerTransform.rotation = Quaternion.Euler(0.0f, 0.0f,
+                                                             rotationAngleZ * Mathf.Rad2Deg);
             }
             if (_movingByMouse)
             {
-                _playerTransform.position = Vector3.MoveTowards(_playerTransform.position, _mouseTargetPosition, playerSpeed * Time.deltaTime);
+                _playerTransform.position = Vector3.MoveTowards(_playerTransform.position,
+                                                                _mouseTargetPosition,
+                                                                playerSpeed * Time.deltaTime);
             }
             if (_playerTransform.position == _mouseTargetPosition)
             {
