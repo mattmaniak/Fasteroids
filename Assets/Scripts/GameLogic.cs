@@ -119,6 +119,8 @@ public class GameLogic : MonoBehaviour
         CheckCollisionsWithShip();
         ShowVisibleAsteroids();
 
+        UpdateLaserBeamPool();
+
         if (!_playerDestroyed)
             _mainCamera.transform.position = new Vector3(_playerTransform.position.x, _playerTransform.position.y, 0f);
     }
@@ -160,7 +162,7 @@ public class GameLogic : MonoBehaviour
     void HandleMouse()
     {
         float rotationAngleZ = 0.0f;
-        Vector3 delta;
+        var delta = new Vector3(0.0f, 0.0f, 0.0f);
 
         if (!_playerDestroyed)
         {
@@ -590,9 +592,7 @@ public class GameLogic : MonoBehaviour
     void Shoot()
     {
         _laserBeamPool.Add(
-            new LaserBeam(Instantiate(_laserBeamPrefab.gameObject),
-                          _playerTransform)
-            );
+            new LaserBeam(Instantiate(_laserBeamPrefab.gameObject), _playerTransform));
         
         if (_laserBeamPool.Count > MaxLaserBeamPoolSize)
         {
@@ -601,15 +601,27 @@ public class GameLogic : MonoBehaviour
         }
     }
 
-    // TODO: FIX STACK OVERFLOW AND EDITOR CRASHING IN UPDATE FUNCTION.
-    void CheckLaserBeamPool()
+    void UpdateLaserBeamPool()
     {
-        if (_laserBeamPool.Count > 0)
+        var laserBeamsToDeleteIndexes = new List<int>() {};
+        
+        // This split-loop mechanism prevents list modification during it's iteration.
+        for (int i = 0; i < _laserBeamPool.Count; i++)
         {
-            foreach (LaserBeam l in _laserBeamPool)
+            _laserBeamPool[i].Update();
+
+            // Select old Laser Beams for deletion.
+            if (!_laserBeamPool[i].Alive)
             {
-                l.Update();
+                laserBeamsToDeleteIndexes.Add(i);
             }
+        }
+        
+        // Remove old Laser Beams.
+        foreach (int i in laserBeamsToDeleteIndexes)
+        {
+            _laserBeamPool[i].gameObject.transform.position = _objectGraveyardPosition;
+            _laserBeamPool.RemoveAt(i);
         }
     }
 }
@@ -618,26 +630,71 @@ internal class LaserBeam
 {
     public GameObject gameObject {get; set;} // GameObject class is sealed, unfortunately...
 
-    private const float _timeToLiveSeconds = 1.0f; // After this, a laser ball will be destroyed.
-    private const float _speedPerSecond = 10.0f;
-    private float _currentLiveTimeSeconds = 0.0f;
-    private Transform _launcherTransform;
+    public bool Alive
+    {
+        get { return _alive; }
+    }
 
+    private const float _timeToLiveSeconds = 1.0f; // After this, a laser ball will be destroyed.
+    private const float _speed = 3.0f;
+
+    private bool _alive;
+
+    private float _currentLiveTimeSeconds = 0.0f;
+
+    private readonly Transform _launcherTransform;
+
+    private readonly Vector3 _normalizedDelta;
+
+    // TODO: SPLIT AND REFACTOR.
     public LaserBeam(GameObject gameObject, Transform launcherTransform)
     {
+        float tangent = 0.0f;
+        float angleDeegreesZ = 0.0f;
+
         this.gameObject = gameObject;
 
+        _alive = true;
         _launcherTransform = launcherTransform;
+
         gameObject.transform.position = launcherTransform.position;
+        angleDeegreesZ = _launcherTransform.rotation.eulerAngles.z;
+
+        tangent = Mathf.Tan(angleDeegreesZ * Mathf.Deg2Rad);
+
+        if ((0.0f <= angleDeegreesZ) && (angleDeegreesZ < 90.0f))
+        {
+            _normalizedDelta.x = -tangent;
+            _normalizedDelta.y = (1.0f / tangent);
+        }
+        else if ((90.0f <= angleDeegreesZ) && (angleDeegreesZ < 180.0f))
+        {
+
+        }
+        else if ((180.0f <= angleDeegreesZ) && (angleDeegreesZ < 270.0f))
+        {
+            
+        }
+        else if ((270.0f <= angleDeegreesZ) && (angleDeegreesZ < 360.0f))
+        {
+            
+        }
+        _normalizedDelta = Vector3.Normalize(_normalizedDelta);
+
+        Debug.Log(_normalizedDelta.x + " " + _normalizedDelta.y + " " + angleDeegreesZ);
     }
 
     public void Update()
     {
+        float deltaMultiplier = Time.deltaTime * _speed;
+        var delta = new Vector3(_normalizedDelta.x * deltaMultiplier,
+                                _normalizedDelta.y * deltaMultiplier, 0);
 
-    }
-
-    private void NormalizeMovementVector()
-    {
-
+        _currentLiveTimeSeconds += Time.deltaTime;
+        if (_currentLiveTimeSeconds > _timeToLiveSeconds)
+        {
+            _alive = false;
+        }
+        gameObject.transform.position += delta;
     }
 }
