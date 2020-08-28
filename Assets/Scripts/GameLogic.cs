@@ -66,14 +66,19 @@ public class GameLogic : MonoBehaviour
     // object pools
     GameObject[] _asteroidPool;
 
+    List<Laser> _laserPool;
+
     Vector3 _playerCachedPosition;
 
     Transform _playerTransform;
     bool _playerDestroyed;
 
+    bool _ignoreSpacePress;
+
     Fasteroids.DataLayer.SpaceshipRepository _repository = new Fasteroids.DataLayer.SpaceshipRepository();
     #endregion
 
+    // TODO: PUT IN REGION ABOVE?
     Vector3 _mouseTargetPosition;
 
     bool _movingByMouse;
@@ -94,6 +99,7 @@ public class GameLogic : MonoBehaviour
             0.3f);
 
         AssignSpaceShipName();
+        _laserPool = new List<Laser>() {};
     }
 
     void Update()
@@ -119,16 +125,29 @@ public class GameLogic : MonoBehaviour
 
     void HandleInput()
     {
-        if (!_playerDestroyed && !_movingByMouse)
+        if (!_playerDestroyed)
         {
-            if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
-                _playerTransform.position += _playerTransform.up * Time.deltaTime * playerSpeed;
-            else if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
-                _playerTransform.position -= _playerTransform.up * Time.deltaTime * playerSpeed;
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-                _playerTransform.Rotate(new Vector3(0, 0, 3f));
-            else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-                _playerTransform.Rotate(new Vector3(0, 0, -3f));
+            if (!_movingByMouse)
+            {
+                if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
+                    _playerTransform.position += _playerTransform.up * Time.deltaTime * playerSpeed;
+                else if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
+                    _playerTransform.position -= _playerTransform.up * Time.deltaTime * playerSpeed;
+                if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
+                    _playerTransform.Rotate(new Vector3(0, 0, 3f));
+                else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+                    _playerTransform.Rotate(new Vector3(0, 0, -3f));
+            }
+
+            // Simple space press blocker to prevent adding more and more lasers
+            // if press lasts (it's often lasts) more than frame delta time.
+            if (Input.GetKeyDown("space") && !_ignoreSpacePress)
+            {
+                _ignoreSpacePress = true;
+                Shoot();
+            }
+            if (Input.GetKeyUp("space"))
+                _ignoreSpacePress = false;
         }
 
         if (Input.GetKey(KeyCode.Escape))
@@ -150,6 +169,7 @@ public class GameLogic : MonoBehaviour
                 _mouseTargetPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 _mouseTargetPosition.z = _playerTransform.position.z;
 
+                // TODO: CONVERT TO VECTOR3.
                 deltaX = _mouseTargetPosition.x - _playerTransform.position.x;
                 deltaY = _mouseTargetPosition.y - _playerTransform.position.y;
 
@@ -561,5 +581,66 @@ public class GameLogic : MonoBehaviour
         }
         // Debug.Log("Name from file: " + SpaceShipConfig.Name); // Check if works.        
         ShipName = SpaceShipConfig.Name;
+    }
+
+    void Shoot()
+    {
+        _laserPool.Add(new Laser(_playerTransform));
+    }
+
+    // TODO: FIX STACK OVERFLOW AND EDITOR CRASHING IN UPDATE FUNCTION.
+    void CheckLaserPool()
+    {
+        if (_laserPool.Count > 0)
+        {
+            foreach (Laser l in _laserPool)
+            {
+                l.Update();
+                if (!l.Alive)
+                {
+                    _laserPool.Remove(l);
+                }
+            }
+            Debug.Log(_laserPool.Count);
+        }
+    }
+}
+
+internal class Laser
+{
+    public GameObject gameObject {get; set;} // GameObject class is sealed, unfortunately...
+
+    public bool Alive
+    {
+        get { return Alive; }
+    }
+
+    private const float _timeToLiveSeconds = 1.0f; // After this, a laser ball will be destroyed.
+    private const float _speedPerSecond = 10.0f;
+    private bool _alive;
+    private float _currentLiveTimeSeconds = 0.0f;
+    private Transform _launcherTransform;
+
+    public Laser(Transform launcherTransform)
+    {
+        _alive = true;
+        _launcherTransform = launcherTransform;
+        
+        Debug.Log(_launcherTransform.position);
+    }
+
+    public void Update()
+    {
+        _currentLiveTimeSeconds += Time.deltaTime;
+
+        if (_currentLiveTimeSeconds >= _timeToLiveSeconds)
+        {
+            _alive = false;
+        }
+    }
+
+    private void NormalizeMovementVector()
+    {
+
     }
 }
