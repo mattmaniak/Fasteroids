@@ -646,42 +646,51 @@ internal class LaserBeam
 
     private readonly Vector3 _normalizedDelta;
 
-    // TODO: SPLIT AND REFACTOR.
     public LaserBeam(GameObject gameObject, Transform launcherTransform)
     {
-        float tangent = 0.0f;
         float angleDeegreesZ = 0.0f;
-
-        this.gameObject = gameObject;
+        float tangent = 0.0f;
 
         _alive = true;
         _launcherTransform = launcherTransform;
 
-        gameObject.transform.position = launcherTransform.position;
+        this.gameObject = gameObject;
+        gameObject.transform.position = _launcherTransform.position;
+
         angleDeegreesZ = _launcherTransform.rotation.eulerAngles.z;
+        if ((tangent = Mathf.Tan(angleDeegreesZ * Mathf.Deg2Rad)) == 0.0f)
+        {
+            tangent = 1.0f;
+        }
 
-        tangent = Mathf.Tan(angleDeegreesZ * Mathf.Deg2Rad);
-
+        // Unity's angles seems to be differ as the <270; 360) deegrees range
+        // is the first quarter of a cartesian plane, so angle is shifted -90*.
+        //
+        // 2-nd quarter.
         if ((0.0f <= angleDeegreesZ) && (angleDeegreesZ < 90.0f))
         {
             _normalizedDelta.x = -tangent;
             _normalizedDelta.y = (1.0f / tangent);
         }
+        // 3-nd quarter.
         else if ((90.0f <= angleDeegreesZ) && (angleDeegreesZ < 180.0f))
         {
-
+            _normalizedDelta.x = tangent;
+            _normalizedDelta.y = (1.0f / tangent);
         }
+        // 4-th quarter.
         else if ((180.0f <= angleDeegreesZ) && (angleDeegreesZ < 270.0f))
         {
-            
+            _normalizedDelta.x = tangent;
+            _normalizedDelta.y = -(1.0f / tangent);            
         }
+        // 1-st quarter.
         else if ((270.0f <= angleDeegreesZ) && (angleDeegreesZ < 360.0f))
         {
-            
+            _normalizedDelta.x = -tangent;
+            _normalizedDelta.y = -(1.0f / tangent);            
         }
         _normalizedDelta = Vector3.Normalize(_normalizedDelta);
-
-        Debug.Log(_normalizedDelta.x + " " + _normalizedDelta.y + " " + angleDeegreesZ);
     }
 
     public void Update()
@@ -690,11 +699,10 @@ internal class LaserBeam
         var delta = new Vector3(_normalizedDelta.x * deltaMultiplier,
                                 _normalizedDelta.y * deltaMultiplier, 0);
 
-        _currentLiveTimeSeconds += Time.deltaTime;
-        if (_currentLiveTimeSeconds > _timeToLiveSeconds)
+        if ((_currentLiveTimeSeconds += Time.deltaTime) > _timeToLiveSeconds)
         {
             _alive = false;
         }
-        gameObject.transform.position += delta;
+        gameObject.transform.position += delta; // Move constantly.
     }
 }
