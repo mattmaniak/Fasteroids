@@ -625,9 +625,12 @@ internal class LaserBeam
     public LaserBeam(GameObject gameObject, Transform launcherTransform)
     {
         this.gameObject = gameObject;
+
         _alive = true;
         _launcherTransform = launcherTransform;
         
+        gameObject.transform.position = launcherTransform.position;
+
         Debug.Log(_launcherTransform.position);
     }
 
