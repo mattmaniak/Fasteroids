@@ -160,8 +160,7 @@ public class GameLogic : MonoBehaviour
     void HandleMouse()
     {
         float rotationAngleZ = 0.0f;
-        float deltaX;
-        float deltaY;
+        Vector3 delta;
 
         if (!_playerDestroyed)
         {
@@ -172,9 +171,8 @@ public class GameLogic : MonoBehaviour
                 _mouseTargetPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 _mouseTargetPosition.z = _playerTransform.position.z;
 
-                // TODO: CONVERT TO VECTOR3.
-                deltaX = _mouseTargetPosition.x - _playerTransform.position.x;
-                deltaY = _mouseTargetPosition.y - _playerTransform.position.y;
+                delta.x = _mouseTargetPosition.x - _playerTransform.position.x;
+                delta.y = _mouseTargetPosition.y - _playerTransform.position.y;
 
                 // Found on the internet. Should work but doesn't.
                 //
@@ -200,18 +198,18 @@ public class GameLogic : MonoBehaviour
                     if (_playerTransform.position.y >= _mouseTargetPosition.y)
                     {
                         // 3-rd quarter
-                        rotationAngleZ = Mathf.Atan2(-deltaX, deltaY);
+                        rotationAngleZ = Mathf.Atan2(-delta.x, delta.y);
                     }
                     else
                     {
                         /// 2-nd quarter
-                        rotationAngleZ = -Mathf.Atan2(deltaX, deltaY);
+                        rotationAngleZ = -Mathf.Atan2(delta.x, delta.y);
                     }                    
                 }
                 else
                 {
                     // 1-st and 4-rd quarters.
-                    rotationAngleZ = Mathf.Atan2(-deltaX, deltaY);
+                    rotationAngleZ = Mathf.Atan2(-delta.x, delta.y);
                 }
                 _playerTransform.rotation = Quaternion.Euler(0.0f, 0.0f, rotationAngleZ * Mathf.Rad2Deg);
             }
