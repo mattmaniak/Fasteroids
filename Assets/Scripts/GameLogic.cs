@@ -119,6 +119,7 @@ public class GameLogic : MonoBehaviour
         CheckCollisionsWithShip();
         ShowVisibleAsteroids();
 
+        CheckLaserBeamCollisionWithAsteroids();
         UpdateLaserBeamPool();
 
         if (!_playerDestroyed)
@@ -127,6 +128,8 @@ public class GameLogic : MonoBehaviour
 
     float playerRadius = 0.08f;
     float playerSpeed = 1.25f;
+
+    float laserBeamRadius = 0.08f;
 
     void HandleInput()
     {
@@ -431,10 +434,6 @@ public class GameLogic : MonoBehaviour
                     break; // no collisions possible neither for this nor for all the rest
             }
 
-            if (_playerDestroyed)
-                continue;
-
-            // check collision with the player
             float distance = FastSqrt(
                 (_playerTransform.position.x - a.Position.x) * (_playerTransform.position.x - a.Position.x)
                 + (_playerTransform.position.y - a.Position.y) * (_playerTransform.position.y - a.Position.y));
@@ -444,6 +443,52 @@ public class GameLogic : MonoBehaviour
                 // this asteroid destroyed player
                 a.DestroyedThisFrame = true;
                 GameOverFunction();
+            }
+        }
+    }
+
+    /// <summary>
+    /// It's not definately copy-paste...
+    ///
+    /// Like previous CheckCollisionWith-like functions, it's not so optimal
+    /// to make loop in loop as the iterations grow exponentially. There could
+    /// be a way to implement it with logarithmic efficiency by, e.g. bisection.
+    /// All those functions could be optimized as there is a lot of repetitions.
+    /// </summary>
+    void CheckLaserBeamCollisionWithAsteroids()
+    {
+        foreach (LaserBeam laser in _laserBeamPool)
+        {
+            for (int i = 0; i < TotalNumberOfAsteroids; i++)
+            {
+                ref AsteroidDto asteroid = ref _asteroids[i];
+                float difX = laser.gameObject.transform.position.x - asteroid.Position.x;
+
+                if (difX >= (laserBeamRadius + AsteroidRadius))
+                {
+                    continue;
+                }
+                if (asteroid.DestroyedThisFrame)
+                {
+                    continue;
+                }
+
+                float difY = laser.gameObject.transform.position.y - asteroid.Position.y;
+                if (difY < 0)
+                {
+                    difY *= -1;
+                }
+
+                float distance = FastSqrt(difX * difX + difY * difY);
+                if (distance < (laserBeamRadius + AsteroidRadius))
+                {
+                    asteroid.DestroyedThisFrame = true;
+                    asteroid.TimeLeftToRespawn = 1f;
+
+                    laser.gameObject.transform.position = _objectGraveyardPosition;
+                    laser.Alive = false;
+                    break;
+                }
             }
         }
     }
@@ -557,6 +602,9 @@ public class GameLogic : MonoBehaviour
     }
     #endregion
 
+    /// <summary>
+    /// John Carmack would be happy.
+    /// <summary>
     // not written by me, I found it on the Internet
     // it is around 10 - 15% faster than the Mathf.Sqrt from Unity.Mathematics 
     // (which probably uses the inverse square root method from Quake 3 based on its cost).
@@ -633,23 +681,23 @@ internal class LaserBeam
     public bool Alive
     {
         get { return _alive; }
+        set { _alive = Alive; }
     }
 
     private const float _timeToLiveSeconds = 1.0f; // After this, a laser ball will be destroyed.
     private const float _speed = 3.0f;
 
+    private readonly Transform _launcherTransform;
     private bool _alive;
 
     private float _currentLiveTimeSeconds = 0.0f;
 
-    private readonly Transform _launcherTransform;
+    private Vector3 _normalizedDelta;
 
-    private readonly Vector3 _normalizedDelta;
 
     public LaserBeam(GameObject gameObject, Transform launcherTransform)
     {
-        float angleDeegreesZ = 0.0f;
-        float tangent = 0.0f;
+        float angleDegreesZ = 0.0f;
 
         _alive = true;
         _launcherTransform = launcherTransform;
@@ -657,40 +705,8 @@ internal class LaserBeam
         this.gameObject = gameObject;
         gameObject.transform.position = _launcherTransform.position;
 
-        angleDeegreesZ = _launcherTransform.rotation.eulerAngles.z;
-        if ((tangent = Mathf.Tan(angleDeegreesZ * Mathf.Deg2Rad)) == 0.0f)
-        {
-            tangent = 1.0f;
-        }
-
-        // Unity's angles seems to be differ as the <270; 360) deegrees range
-        // is the first quarter of a cartesian plane, so angle is shifted -90*.
-        //
-        // 2-nd quarter.
-        if ((0.0f <= angleDeegreesZ) && (angleDeegreesZ < 90.0f))
-        {
-            _normalizedDelta.x = -tangent;
-            _normalizedDelta.y = (1.0f / tangent);
-        }
-        // 3-nd quarter.
-        else if ((90.0f <= angleDeegreesZ) && (angleDeegreesZ < 180.0f))
-        {
-            _normalizedDelta.x = tangent;
-            _normalizedDelta.y = (1.0f / tangent);
-        }
-        // 4-th quarter.
-        else if ((180.0f <= angleDeegreesZ) && (angleDeegreesZ < 270.0f))
-        {
-            _normalizedDelta.x = tangent;
-            _normalizedDelta.y = -(1.0f / tangent);            
-        }
-        // 1-st quarter.
-        else if ((270.0f <= angleDeegreesZ) && (angleDeegreesZ < 360.0f))
-        {
-            _normalizedDelta.x = -tangent;
-            _normalizedDelta.y = -(1.0f / tangent);            
-        }
-        _normalizedDelta = Vector3.Normalize(_normalizedDelta);
+        angleDegreesZ = _launcherTransform.rotation.eulerAngles.z;
+        CountDeltaAxis(angleDegreesZ);
     }
 
     public void Update()
@@ -704,5 +720,60 @@ internal class LaserBeam
             _alive = false;
         }
         gameObject.transform.position += delta; // Move constantly.
+    }
+
+    void CountDeltaAxis(float angleDegreesZ)
+    {
+        float tangent;
+
+        if ((tangent = Mathf.Tan(angleDegreesZ * Mathf.Deg2Rad)) == 0.0f)
+        {
+            tangent = 100.0f;
+        }
+
+        // Unity's angles seems to be differ as the <270; 360) deegrees range
+        // is the first quarter of a cartesian plane, so angle is shifted -90*.
+        //
+        // 2-nd quarter.
+        if ((0.0f < angleDegreesZ) && (angleDegreesZ < 90.0f))
+        {
+            _normalizedDelta.x = -tangent;
+            _normalizedDelta.y = (1.0f / tangent);
+        }
+        // 3-nd quarter.
+        else if ((90.0f < angleDegreesZ) && (angleDegreesZ < 180.0f))
+        {
+            _normalizedDelta.x = tangent;
+            _normalizedDelta.y = (1.0f / tangent);
+        }
+        // 4-th quarter.
+        else if ((180.0f < angleDegreesZ) && (angleDegreesZ < 270.0f))
+        {
+            _normalizedDelta.x = tangent;
+            _normalizedDelta.y = -(1.0f / tangent);            
+        }
+        // 1-st quarter.
+        else if ((270.0f < angleDegreesZ) && (angleDegreesZ < 360.0f))
+        {
+            _normalizedDelta.x = -tangent;
+            _normalizedDelta.y = -(1.0f / tangent);            
+        }
+        else if (angleDegreesZ == 0.0f)
+        {
+            _normalizedDelta.y = 1.0f;
+        }
+        else if (angleDegreesZ == 90.0f)
+        {
+            _normalizedDelta.x = -1.0f;            
+        }
+        else if (angleDegreesZ == 180.0f)
+        {
+            _normalizedDelta.y = -1.0f;
+        }
+        else if (angleDegreesZ == 270.0f)
+        {
+            _normalizedDelta.x = 1.0f;
+        }
+        _normalizedDelta = Vector3.Normalize(_normalizedDelta);
     }
 }
