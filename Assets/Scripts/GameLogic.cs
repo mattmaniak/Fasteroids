@@ -81,14 +81,14 @@ public class GameLogic : MonoBehaviour
     bool _ignoreSpacePress;
 
     Fasteroids.DataLayer.SpaceshipRepository _repository = new Fasteroids.DataLayer.SpaceshipRepository();
-    #endregion
 
-    // TODO: PUT IN REGION ABOVE?
     Vector3 _mouseTargetPosition;
 
     bool _movingByMouse;
 
     int  _score = 0;
+
+    #endregion
 
     void Start()
     {
