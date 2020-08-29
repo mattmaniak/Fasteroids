@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.UI;
 
 public class MyComparer : Comparer<AsteroidDto>
@@ -495,17 +496,17 @@ public class GameLogic : MonoBehaviour
                     laser.Alive = false;
 
                     // Ugly and temponary solution of scoring.
-                    if (_score < 9)
+                    if (++_score < 10)
                     {
-                        _score++;
-                        _scoreLabel.text = "Destroyed Sputniks: " + _score.ToString();
-                        break;
+                        _scoreLabel.text = "Destroyed Asteroids: " + _score.ToString();
                     }
                     else
                     {
-                        _scoreLabel.text = "Polan can into space!";
+                        _scoreLabel.text = "Polan can into space: " +  _score.ToString() + " times!";
                         _scoreLabel.color = Color.white;
                     }
+                    Assert.IsFalse(_score > int.MaxValue);
+                    break;
                 }
             }
         }
@@ -746,7 +747,7 @@ internal class LaserBeam
 
         if ((tangent = Mathf.Tan(angleDegreesZ * Mathf.Deg2Rad)) == 0.0f)
         {
-            tangent = 100.0f;
+            tangent = 100.0f; // Or any relatively big random number.
         }
 
         // Unity's angles seems to be differ as the <270; 360) deegrees range
