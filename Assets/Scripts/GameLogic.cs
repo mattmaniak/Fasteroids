@@ -43,7 +43,7 @@ public class GameLogic : MonoBehaviour
     // pool sizes
     const int AsteroidPoolSize = 40; // in tests this never went above 35 so for safety I gave 5 more
 
-    const int MaxLaserBeamPoolSize = 3;
+    const int MaxLaserBeamPoolSize = 3; // Max. burst size.
 
     float FrustumSizeX = 3.8f;
     float FrustumSizeY = 2.3f;
@@ -65,6 +65,7 @@ public class GameLogic : MonoBehaviour
     [SerializeField] Camera _mainCamera;
     [SerializeField] Button _restartButton;
     [SerializeField] Text _youLoseLabel;
+    [SerializeField] Text _scoreLabel;
 
     // object pools
     GameObject[] _asteroidPool;
@@ -86,10 +87,13 @@ public class GameLogic : MonoBehaviour
 
     bool _movingByMouse;
 
+    int  _score = 0;
+
     void Start()
     {
         _restartButton.gameObject.SetActive(false);
         _youLoseLabel.gameObject.SetActive(false);
+        _scoreLabel.gameObject.SetActive(true);
 
         CreateObjectPoolsAndTables();
         InitializeAsteroidsGridLayout();
@@ -103,6 +107,8 @@ public class GameLogic : MonoBehaviour
 
         AssignSpaceShipName();
         _laserBeamPool = new List<LaserBeam>() {};
+
+        _scoreLabel.text = "Press space to conquer the space!";
     }
 
     void Update()
@@ -487,7 +493,19 @@ public class GameLogic : MonoBehaviour
 
                     laser.gameObject.transform.position = _objectGraveyardPosition;
                     laser.Alive = false;
-                    break;
+
+                    // Ugly and temponary solution of scoring.
+                    if (_score < 9)
+                    {
+                        _score++;
+                        _scoreLabel.text = "Destroyed Sputniks: " + _score.ToString();
+                        break;
+                    }
+                    else
+                    {
+                        _scoreLabel.text = "Polan can into space!";
+                        _scoreLabel.color = Color.white;
+                    }
                 }
             }
         }
