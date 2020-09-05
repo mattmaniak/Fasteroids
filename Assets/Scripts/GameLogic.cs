@@ -41,10 +41,10 @@ public class GameLogic : MonoBehaviour
 
     public string ShipName;
 
-    // pool sizes
+    // pool size
     const int AsteroidPoolSize = 40; // in tests this never went above 35 so for safety I gave 5 more
 
-    const int MaxLaserBeamPoolSize = 3; // Max. burst size.
+    const int MaxLaserBeamsNumber = 3; // Max. burst size.
 
     float FrustumSizeX = 3.8f;
     float FrustumSizeY = 2.3f;
@@ -71,7 +71,7 @@ public class GameLogic : MonoBehaviour
     // object pools
     GameObject[] _asteroidPool;
 
-    List<LaserBeam> _laserBeamPool;
+    List<LaserBeam> _laserBeams;
 
     Vector3 _playerCachedPosition;
 
@@ -107,7 +107,7 @@ public class GameLogic : MonoBehaviour
             0.3f);
 
         AssignSpaceShipName();
-        _laserBeamPool = new List<LaserBeam>() {};
+        _laserBeams = new List<LaserBeam>() {};
 
         _scoreLabel.text = "Press space to conquer the space!";
     }
@@ -127,7 +127,7 @@ public class GameLogic : MonoBehaviour
         ShowVisibleAsteroids();
 
         CheckLaserBeamCollisionWithAsteroids();
-        UpdateLaserBeamPool();
+        UpdateLaserBeams();
 
         if (!_playerDestroyed)
             _mainCamera.transform.position = new Vector3(_playerTransform.position.x, _playerTransform.position.y, 0f);
@@ -464,7 +464,7 @@ public class GameLogic : MonoBehaviour
     /// </summary>
     void CheckLaserBeamCollisionWithAsteroids()
     {
-        foreach (LaserBeam laser in _laserBeamPool)
+        foreach (LaserBeam laser in _laserBeams)
         {
             for (int i = 0; i < TotalNumberOfAsteroids; i++)
             {
@@ -658,27 +658,27 @@ public class GameLogic : MonoBehaviour
 
     void Shoot()
     {
-        _laserBeamPool.Add(
+        _laserBeams.Add(
             new LaserBeam(Instantiate(_laserBeamPrefab.gameObject), _playerTransform));
         
-        if (_laserBeamPool.Count > MaxLaserBeamPoolSize)
+        if (_laserBeams.Count > MaxLaserBeamsNumber)
         {
-            _laserBeamPool[0].gameObject.transform.position = _objectGraveyardPosition;
-            _laserBeamPool.RemoveAt(0);
+            _laserBeams[0].gameObject.transform.position = _objectGraveyardPosition;
+            _laserBeams.RemoveAt(0);
         }
     }
 
-    void UpdateLaserBeamPool()
+    void UpdateLaserBeams()
     {
         var laserBeamsToDeleteIndexes = new List<int>() {};
         
         // This split-loop mechanism prevents list modification during it's iteration.
-        for (int i = 0; i < _laserBeamPool.Count; i++)
+        for (int i = 0; i < _laserBeams.Count; i++)
         {
-            _laserBeamPool[i].Update();
+            _laserBeams[i].Update();
 
             // Select old Laser Beams for deletion.
-            if (!_laserBeamPool[i].Alive)
+            if (!_laserBeams[i].Alive)
             {
                 laserBeamsToDeleteIndexes.Add(i);
             }
@@ -687,8 +687,8 @@ public class GameLogic : MonoBehaviour
         // Remove old Laser Beams.
         foreach (int i in laserBeamsToDeleteIndexes)
         {
-            _laserBeamPool[i].gameObject.transform.position = _objectGraveyardPosition;
-            _laserBeamPool.RemoveAt(i);
+            _laserBeams[i].gameObject.transform.position = _objectGraveyardPosition;
+            _laserBeams.RemoveAt(i);
         }
     }
 }
